@@ -1,20 +1,20 @@
 package controller
 
-import (
-	"fmt"
+// import (
+// 	"fmt"
 
-	"github.com/andrey4d/kboperator/api/v1alpha1"
-)
+// 	"github.com/andrey4d/kboperator/api/v1alpha1"
+// )
 
-// finalizeMemcached will perform the required operations before delete the CR.
-func (r *KanikoBuildReconciler) doFinalizerOperationsForKanikoBuilder(cr *v1alpha1.KanikoBuild) {
+// // finalizeMemcached will perform the required operations before delete the CR.
+// func (r *KanikoBuildReconciler) doFinalizerOperationsForKanikoBuilder(cr *v1alpha1.KanikoBuild) {
 
-	r.Recorder.Event(cr, "Warning", "Deleting", fmt.Sprintf("Custom Resource %s is being deleted ", cr.Name))
-}
+// 	r.Recorder.Event(cr, "Warning", "Deleting", fmt.Sprintf("Custom Resource %s is being deleted ", cr.Name))
+// }
 
-func GetProjectFinalizer() string {
-	return "kbo.k8s.dav.io/finalizer"
-}
+// func GetProjectFinalizer() string {
+// 	return "kbo.k8s.dav.io/finalizer"
+// }
 
 /*
 	// Let's add a finalizer. Then, we can define some operations which should occurs before the custom resource to be deleted.
