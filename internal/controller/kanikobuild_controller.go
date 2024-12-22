@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -43,6 +42,10 @@ const (
 	typeAvailableProject = "Available"
 	typeDegradedProject  = "Degraded"
 )
+
+type contextKey string
+
+const objectLogKey contextKey = "object"
 
 // KanikoBuildReconciler reconciles a KanikoBuild object
 type KanikoBuildReconciler struct {
@@ -70,7 +73,7 @@ func (r *KanikoBuildReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	kaniko := &kbov1alpha1.KanikoBuild{}
 	err := r.Get(ctx, types.NamespacedName{Name: req.Name, Namespace: req.Namespace}, kaniko)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			log.Info("Application resource not found. Ignoring since object must be deleted.")
 			return ctrl.Result{}, nil
 		}
@@ -80,7 +83,7 @@ func (r *KanikoBuildReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	log.Info("Application resource found", "name", kaniko.Name)
 
-	if kaniko.Status.Conditions == nil || len(kaniko.Status.Conditions) == 0 {
+	if len(kaniko.Status.Conditions) == 0 {
 		meta.SetStatusCondition(&kaniko.Status.Conditions, metav1.Condition{Type: typeAvailableProject, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "Starting reconciliation"})
 		if err = r.Status().Update(ctx, kaniko); err != nil {
 			log.Error(err, "Failed to update project status")
@@ -120,13 +123,13 @@ func (r *KanikoBuildReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *KanikoBuildReconciler) ConfigMap(ctx context.Context, req ctrl.Request, kaniko *kbov1alpha1.KanikoBuild) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 	found := &corev1.ConfigMap{}
-	err := r.Get(ctx, types.NamespacedName{Name: kaniko.Spec.Name, Namespace: kaniko.Namespace}, found)
+	err := r.Get(ctx, r.objectKey(kaniko), found)
 
 	if err != nil && apierrors.IsNotFound(err) {
 
 		cm, err := configmaps.NewConfigMap(kaniko, r.Scheme).BuilderConfigMap()
 
-		if err := r.SetErrorStatus(context.WithValue(ctx, "object", "ConfigMap"), kaniko, err); err != nil {
+		if err := r.SetErrorStatus(context.WithValue(ctx, objectLogKey, "ConfigMap"), kaniko, err); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -149,10 +152,10 @@ func (r *KanikoBuildReconciler) ConfigMap(ctx context.Context, req ctrl.Request,
 func (r *KanikoBuildReconciler) Job(ctx context.Context, req ctrl.Request, kaniko *kbov1alpha1.KanikoBuild) (ctrl.Result, error) {
 	log := log.FromContext(ctx).WithName("Job")
 	found := &kbatch.Job{}
-	err := r.Get(ctx, types.NamespacedName{Name: kaniko.Name, Namespace: req.Namespace}, found)
+	err := r.Get(ctx, r.objectKey(kaniko), found)
 	if err != nil && apierrors.IsNotFound(err) {
 		job, err := jobs.NewJob(kaniko, r.Scheme).BuilderJob()
-		if err := r.SetErrorStatus(context.WithValue(ctx, "object", "Job"), kaniko, err); err != nil {
+		if err := r.SetErrorStatus(context.WithValue(ctx, objectLogKey, "Job"), kaniko, err); err != nil {
 			return ctrl.Result{}, err
 		}
 		log.Info("Creating a new Job", "Namespace", job.Namespace, "Name", job.Name)
@@ -189,4 +192,11 @@ func (r *KanikoBuildReconciler) SetErrorStatus(ctx context.Context, kaniko *kbov
 		return err
 	}
 	return err
+}
+
+func (r *KanikoBuildReconciler) objectKey(k *kbov1alpha1.KanikoBuild) client.ObjectKey {
+	return client.ObjectKey{
+		Name:      k.Spec.Name,
+		Namespace: k.Namespace,
+	}
 }
