@@ -6,6 +6,7 @@ package configmaps
 
 import (
 	kbov1alpha1 "github.com/andrey4d/kboperator/api/v1alpha1"
+	"github.com/andrey4d/kboperator/internal/k8s/builder"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,26 +15,31 @@ import (
 )
 
 type ConfigMap struct {
-	Scheme    *runtime.Scheme
 	Namespace string
+	Scheme    *runtime.Scheme
+	builder   *builder.Builder
 }
 
-func NewConfigMap(scheme *runtime.Scheme, namespace string) *ConfigMap {
-	return &ConfigMap{Scheme: scheme, Namespace: namespace}
+func NewConfigMap(k *kbov1alpha1.KanikoBuild, scheme *runtime.Scheme) *ConfigMap {
+	return &ConfigMap{
+		Namespace: k.Namespace,
+		Scheme:    scheme,
+		builder:   builder.NewBuilder(k),
+	}
 }
 
-func (c *ConfigMap) BuilderConfigMap(k *kbov1alpha1.KanikoBuild) (*corev1.ConfigMap, error) {
+func (c *ConfigMap) BuilderConfigMap() (*corev1.ConfigMap, error) {
 
-	metadata := metav1.ObjectMeta{Name: k.Name, Namespace: c.Namespace}
+	metadata := metav1.ObjectMeta{Name: c.builder.BuilderName(), Namespace: c.Namespace}
 
 	cm := &corev1.ConfigMap{ObjectMeta: metadata,
 		Data: map[string]string{
-			"Dockerfile":  k.Spec.Dockerfile,
-			"config.json": dockerConfig(k.Spec.DockerConfig.Registry, k.Spec.DockerConfig.Auth),
+			"Dockerfile":  c.builder.Crd.Spec.Dockerfile,
+			"config.json": dockerConfig(c.builder.Crd.Spec.DockerConfig.Registry, c.builder.Crd.Spec.DockerConfig.Auth),
 		},
 	}
 
-	if err := ctrl.SetControllerReference(k, cm, c.Scheme); err != nil {
+	if err := ctrl.SetControllerReference(c.builder.Crd, cm, c.Scheme); err != nil {
 		return nil, err
 	}
 

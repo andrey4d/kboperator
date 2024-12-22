@@ -33,7 +33,6 @@ import (
 	// v1 "k8s.io/client-go/applyconfigurations/core/v1"
 	kbov1alpha1 "github.com/andrey4d/kboperator/api/v1alpha1"
 	"github.com/andrey4d/kboperator/internal/k8s/configmaps"
-	"github.com/andrey4d/kboperator/internal/k8s/deployments"
 	"github.com/andrey4d/kboperator/internal/k8s/jobs"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -137,45 +136,13 @@ func (r *KanikoBuildReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *KanikoBuildReconciler) Deployment(ctx context.Context, req ctrl.Request, kaniko *kbov1alpha1.KanikoBuild) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
-	found := &appsv1.Deployment{}
-
-	err := r.Get(ctx, types.NamespacedName{Name: kaniko.Name, Namespace: req.Namespace}, found)
-	if err != nil && apierrors.IsNotFound(err) {
-
-		dep, err := deployments.NewDeployment(r.Scheme, req.Namespace).BuilderDeployment(kaniko)
-		if err := r.SetErrorStatus(context.WithValue(ctx, "object", "Deployment"), kaniko, err); err != nil {
-			return ctrl.Result{}, err
-		}
-
-		log.Info("Creating a new Deployment", "Namespace", dep.Namespace, "Name", dep.Name)
-
-		if err = r.Create(ctx, dep); err != nil {
-			log.Error(err, "Failed to create new Deployment", "Namespace", dep.Namespace, "Name", dep.Name)
-			return ctrl.Result{}, err
-		}
-
-		// Deployment created successfully
-		// We will requeue the reconciliation so that we can ensure the state
-		// and move forward for the next operations
-		return ctrl.Result{RequeueAfter: time.Minute}, nil
-
-	} else if err != nil {
-		log.Error(err, "Failed to get Deployment")
-		// Let's return the error for the reconciliation be re-trigged again
-		return ctrl.Result{}, err
-	}
-	return ctrl.Result{}, nil
-}
-
 func (r *KanikoBuildReconciler) ConfigMap(ctx context.Context, req ctrl.Request, kaniko *kbov1alpha1.KanikoBuild) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 	found := &corev1.ConfigMap{}
 	err := r.Get(ctx, types.NamespacedName{Name: kaniko.Name, Namespace: req.Namespace}, found)
 	if err != nil && apierrors.IsNotFound(err) {
 
-		cm, err := configmaps.NewConfigMap(r.Scheme, req.Namespace).BuilderConfigMap(kaniko)
+		cm, err := configmaps.NewConfigMap(kaniko, r.Scheme).BuilderConfigMap()
 
 		if err := r.SetErrorStatus(context.WithValue(ctx, "object", "ConfigMap"), kaniko, err); err != nil {
 			return ctrl.Result{}, err

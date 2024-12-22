@@ -10,11 +10,11 @@ import (
 )
 
 type Builder struct {
-	BuilderCrd *kbov1alpha1.KanikoBuild
+	Crd *kbov1alpha1.KanikoBuild
 }
 
 func NewBuilder(k *kbov1alpha1.KanikoBuild) *Builder {
-	return &Builder{BuilderCrd: k}
+	return &Builder{Crd: k}
 }
 
 func (b *Builder) LabelsForBuilder() map[string]string {
@@ -43,41 +43,41 @@ func (b *Builder) VolumesMount() []corev1.VolumeMount {
 }
 
 func (b *Builder) Command() []string {
-	if len(b.BuilderCrd.Spec.Command) > 0 {
-		return b.BuilderCrd.Spec.Command
+	if len(b.Crd.Spec.Command) > 0 {
+		return b.Crd.Spec.Command
 	}
 	return []string{
 		"/kaniko/executor",
 		"--context=" + b.GetContext(),
 		"--dockerfile=" + b.GetContext() + "/Dockerfile",
-		"--destination=" + b.BuilderCrd.Spec.Destination,
+		"--destination=" + b.Crd.Spec.Destination,
 	}
 }
 
 func (b *Builder) Args() []string {
-	if len(b.BuilderCrd.Spec.Args) > 0 {
-		return b.BuilderCrd.Spec.Args
+	if len(b.Crd.Spec.Args) > 0 {
+		return b.Crd.Spec.Args
 	}
 	return []string{}
 }
 
 func (b *Builder) GetContext() string {
-	if b.BuilderCrd.Spec.Context != "" {
-		return b.BuilderCrd.Spec.Context
+	if b.Crd.Spec.Context != "" {
+		return b.Crd.Spec.Context
 	}
 	return "/workspace"
 }
 
 func (b *Builder) BuilderImage(k *kbov1alpha1.KanikoBuild) string {
-	if b.BuilderCrd.Spec.Image != "" {
-		return b.BuilderCrd.Spec.Image
+	if b.Crd.Spec.Image != "" {
+		return b.Crd.Spec.Image
 	}
 	return "gcr.io/kaniko-project/executor:latest"
 }
 
 func (b *Builder) BuilderName() string {
-	if b.BuilderCrd.Spec.Name != "" {
-		return b.BuilderCrd.Spec.Name
+	if b.Crd.Spec.Name != "" {
+		return b.Crd.Spec.Name
 	}
 	return "builder"
 }

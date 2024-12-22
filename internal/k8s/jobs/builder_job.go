@@ -31,7 +31,7 @@ func NewJob(k *kbov1alpha1.KanikoBuild, scheme *runtime.Scheme) *Job {
 func (j *Job) BuilderJob() (*batchv1.Job, error) {
 
 	containers := []corev1.Container{{
-		Image:           j.builder.BuilderImage(j.builder.BuilderCrd),
+		Image:           j.builder.BuilderImage(j.builder.Crd),
 		Name:            j.builder.BuilderName(),
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Command:         j.builder.Command(),
@@ -63,7 +63,7 @@ func (j *Job) BuilderJob() (*batchv1.Job, error) {
 		Spec: spec,
 	}
 
-	if err := ctrl.SetControllerReference(j.builder.BuilderCrd, job, j.Scheme); err != nil {
+	if err := ctrl.SetControllerReference(j.builder.Crd, job, j.Scheme); err != nil {
 		return nil, err
 	}
 
