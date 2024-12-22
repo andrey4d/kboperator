@@ -19,9 +19,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"time"
-
-	// "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -30,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 
-	// v1 "k8s.io/client-go/applyconfigurations/core/v1"
 	kbov1alpha1 "github.com/andrey4d/kboperator/api/v1alpha1"
 	"github.com/andrey4d/kboperator/internal/k8s/configmaps"
 	"github.com/andrey4d/kboperator/internal/k8s/jobs"
@@ -38,20 +34,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	// "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	appsv1 "k8s.io/api/apps/v1"
 	kbatch "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// const kanikoFinalizer = "kbo.k8s.dav.io/finalizer"
-
 const (
-	// typeAvailableMemcached represents the status of the Deployment reconciliation
 	typeAvailableProject = "Available"
-	// typeDegradedMemcached represents the status used when the custom resource is deleted and the finalizer operations are yet to occur.
-	typeDegradedProject = "Degraded"
+	typeDegradedProject  = "Degraded"
 )
 
 // KanikoBuildReconciler reconciles a KanikoBuild object
@@ -79,8 +69,6 @@ func (r *KanikoBuildReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	kaniko := &kbov1alpha1.KanikoBuild{}
 	err := r.Get(ctx, types.NamespacedName{Name: req.Name, Namespace: req.Namespace}, kaniko)
-	fmt.Println("KanikoBuild namespace: ", kaniko.Namespace)
-
 	if err != nil {
 		if errors.IsNotFound(err) {
 			log.Info("Application resource not found. Ignoring since object must be deleted.")
@@ -111,18 +99,11 @@ func (r *KanikoBuildReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return result, err
 	}
 
-	// deployment
-	// result, err = r.Deployment(ctx, req, kaniko)
-	// if err != nil {
-	// 	return result, err
-	// }
-
+	// Jobs
 	result, err = r.Job(ctx, req, kaniko)
 	if err != nil {
 		return result, err
 	}
-
-	// TODO(user): your logic here
 
 	return ctrl.Result{}, nil
 }
@@ -139,7 +120,8 @@ func (r *KanikoBuildReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *KanikoBuildReconciler) ConfigMap(ctx context.Context, req ctrl.Request, kaniko *kbov1alpha1.KanikoBuild) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 	found := &corev1.ConfigMap{}
-	err := r.Get(ctx, types.NamespacedName{Name: kaniko.Name, Namespace: req.Namespace}, found)
+	err := r.Get(ctx, types.NamespacedName{Name: kaniko.Spec.Name, Namespace: kaniko.Namespace}, found)
+
 	if err != nil && apierrors.IsNotFound(err) {
 
 		cm, err := configmaps.NewConfigMap(kaniko, r.Scheme).BuilderConfigMap()
