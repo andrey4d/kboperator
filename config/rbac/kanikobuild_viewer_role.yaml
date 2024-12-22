@@ -1,0 +1,23 @@
+# permissions for end users to view kanikobuilds.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: kboperator
+    app.kubernetes.io/managed-by: kustomize
+  name: kanikobuild-viewer-role
+rules:
+- apiGroups:
+  - kbo.k8s.dav.io
+  resources:
+  - kanikobuilds
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - kbo.k8s.dav.io
+  resources:
+  - kanikobuilds/status
+  verbs:
+  - get

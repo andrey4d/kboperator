@@ -1,0 +1,30 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - kbo.k8s.dav.io
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kbo.k8s.dav.io
+  resources:
+  - kanikobuilds/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - kbo.k8s.dav.io
+  resources:
+  - kanikobuilds/status
+  verbs:
+  - get
+  - patch
+  - update

@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- kbo_v1alpha1_kanikobuild.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples
