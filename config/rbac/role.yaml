@@ -5,7 +5,23 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - '*'
+  resources:
+  - '*'
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - kbo.k8s.dav.io
+  resources:
+  - kanikobuilds/configmaps
+  - kanikobuilds/jobs
+  - kanikobuilds/persistentvolumeclaims
   verbs:
   - create
   - delete
