@@ -1,6 +1,34 @@
 # Kaniko Kubernetes operator
 ### Kubernetes operator for building docker image using kaniko as a tool for creating container images from Dockerfile
 
+### kboperator build manifest
+#### build context git://
+```yaml
+apiVersion: kbo.k8s.dav.io/v1alpha1
+kind: KanikoBuild
+metadata:
+  labels:
+    app.kubernetes.io/name: builder-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: kbopertor
+  namespace: kaniko-test
+spec:
+  name: builder
+  image: registry.home.local/kaniko/executor:v1.23.2-debug
+  command:
+    - /kaniko/executor
+  args:
+    - --context=git://github.com/andrey4d/kboperator.git#refs/heads/main
+    - --dockerfile=/kaniko/buildcontext/Dockerfile
+    - --destination=registry.home.local/kboperator:v0.0.1
+    - --cache=true
+    - --cache-repo=registry.home.local/kaniko-cache
+    - --skip-tls-verify
+  docker_config:
+    registry: registry.home.local
+    auth: dXNlcjpwYXNzd29yZA==
+```
+
 #### manifest
 ```yaml
 apiVersion: kbo.k8s.dav.io/v1alpha1

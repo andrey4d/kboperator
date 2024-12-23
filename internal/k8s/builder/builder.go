@@ -49,8 +49,11 @@ func (b *Builder) PodVolumes() []corev1.Volume {
 
 func (b *Builder) VolumesMount() []corev1.VolumeMount {
 	volumesMount := []corev1.VolumeMount{
-		{Name: "dockerfile", MountPath: "/kaniko/Dockerfile", SubPath: "Dockerfile"},
 		{Name: "dockerfile", MountPath: "/kaniko/.docker/config.json", SubPath: "config.json"},
+	}
+	if b.Crd.Spec.Dockerfile != "" {
+		volumesMount = append(volumesMount,
+			corev1.VolumeMount{Name: "dockerfile", MountPath: "/kaniko/Dockerfile", SubPath: "Dockerfile"})
 	}
 	if b.Crd.Spec.Persistence.Enabled {
 		volumesMount = append(volumesMount,
