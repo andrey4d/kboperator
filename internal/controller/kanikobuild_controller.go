@@ -29,6 +29,7 @@ import (
 	kbov1alpha1 "github.com/andrey4d/kboperator/api/v1alpha1"
 	"github.com/andrey4d/kboperator/internal/k8s/configmaps"
 	"github.com/andrey4d/kboperator/internal/k8s/jobs"
+	"github.com/andrey4d/kboperator/internal/k8s/persistence"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -102,6 +103,10 @@ func (r *KanikoBuildReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return result, err
 	}
 
+	result, err = r.PersistenceVolume(ctx, req, kaniko)
+	if err != nil {
+		return result, err
+	}
 	// Jobs
 	result, err = r.Job(ctx, req, kaniko)
 	if err != nil {
@@ -117,6 +122,7 @@ func (r *KanikoBuildReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&kbov1alpha1.KanikoBuild{}).
 		Named("kanikobuild").
 		// Owns(&kbatch.Job{}).
+		Owns(&corev1.ConfigMap{}).
 		Complete(r)
 }
 
@@ -126,26 +132,21 @@ func (r *KanikoBuildReconciler) ConfigMap(ctx context.Context, req ctrl.Request,
 	err := r.Get(ctx, r.objectKey(kaniko), found)
 
 	if err != nil && apierrors.IsNotFound(err) {
-
 		cm, err := configmaps.NewConfigMap(kaniko, r.Scheme).BuilderConfigMap()
-
 		if err := r.SetErrorStatus(context.WithValue(ctx, objectLogKey, "ConfigMap"), kaniko, err); err != nil {
 			return ctrl.Result{}, err
 		}
-
 		log.Info("Creating a new ConfigMap", "ConfigMap.Namespace", cm.Namespace, "ConfigMap.Name", cm.Name)
 
 		if err = r.Create(ctx, cm); err != nil {
 			log.Error(err, "Failed to create new ConfigMap", "ConfigMap.Namespace", cm.Namespace, "ConfigMap.Name", cm.Name)
 			return ctrl.Result{}, err
 		}
-
 	} else if err != nil {
 		log.Error(err, "Failed to get ConfigMap")
 		// Let's return the error for the reconciliation be re-trigged again
 		return ctrl.Result{}, err
 	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -170,7 +171,6 @@ func (r *KanikoBuildReconciler) Job(ctx context.Context, req ctrl.Request, kanik
 		// Let's return the error for the reconciliation be re-trigged again
 		return ctrl.Result{}, err
 	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -192,6 +192,28 @@ func (r *KanikoBuildReconciler) SetErrorStatus(ctx context.Context, kaniko *kbov
 		return err
 	}
 	return err
+}
+
+func (r *KanikoBuildReconciler) PersistenceVolume(ctx context.Context, req ctrl.Request, kaniko *kbov1alpha1.KanikoBuild) (ctrl.Result, error) {
+	log := log.FromContext(ctx).WithName("PersistenceVolume")
+	found := &corev1.PersistentVolumeClaim{}
+	err := r.Get(ctx, r.objectKey(kaniko), found)
+	if err != nil && apierrors.IsNotFound(err) {
+		pvc, err := persistence.NewPersistence(kaniko, r.Scheme).BuilderPvc()
+		if err := r.SetErrorStatus(context.WithValue(ctx, objectLogKey, "PVC"), kaniko, err); err != nil {
+			return ctrl.Result{}, err
+		}
+		log.Info("Creating a new ConfigMap", "Namespace", pvc.Namespace, "Name", pvc.Name)
+
+		if err = r.Create(ctx, pvc); err != nil {
+			log.Error(err, "Failed to create new PVC", "Namespace", pvc.Namespace, "Name", pvc.Name)
+			return ctrl.Result{}, err
+		}
+	} else if err != nil {
+		log.Error(err, "Failed to get PVC")
+		return ctrl.Result{}, err
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *KanikoBuildReconciler) objectKey(k *kbov1alpha1.KanikoBuild) client.ObjectKey {

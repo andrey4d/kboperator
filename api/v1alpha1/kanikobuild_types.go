@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,20 +26,35 @@ import (
 
 // KanikoBuildSpec defines the desired state of KanikoBuild.
 type KanikoBuildSpec struct {
-	Name         string       `json:"name,omitempty" default:"builder"`
-	Image        string       `json:"image,omitempty" default:"gcr.io/kaniko-project/executor:latest"`
-	Context      string       `json:"context,omitempty" default:"/workspace"`
-	Dockerfile   string       `json:"dockerfile,omitempty"`
-	Destination  string       `json:"destination,omitempty"`
-	Certificate  string       `json:"certificate,omitempty"`
-	DockerConfig DockerConfig `json:"docker_config,omitempty"`
-	Command      []string     `json:"command,omitempty"`
-	Args         []string     `json:"args,omitempty"`
+	Name         string            `json:"name,omitempty" default:"builder"`
+	Image        string            `json:"image,omitempty" default:"gcr.io/kaniko-project/executor:latest"`
+	Context      string            `json:"context,omitempty" default:"/workspace"`
+	Dockerfile   string            `json:"dockerfile,omitempty"`
+	Destination  string            `json:"destination,omitempty"`
+	Certificate  string            `json:"certificate,omitempty"`
+	DockerConfig DockerConfig      `json:"docker_config,omitempty"`
+	Command      []string          `json:"command,omitempty"`
+	Args         []string          `json:"args,omitempty"`
+	Persistence  PersistenceVolume `json:"persistence,omitempty"`
 }
 
 type DockerConfig struct {
 	Registry string `json:"registry,omitempty"`
 	Auth     string `json:"auth,omitempty"`
+}
+
+type PersistenceVolume struct {
+	Enabled bool `json:"enabled,omitempty"`
+	// Defaults: 1Gi
+	VolumeSize   string   `json:"volumeSize,omitempty"`
+	StorageClass string   `json:"storageClass,omitempty"`
+	ExtraVolumes []Volume `json:"extraVolumes,omitempty"`
+}
+
+type Volume struct {
+	corev1.Volume `json:",inline"`
+	// MountPath is the path where this volume should be mounted
+	MountPath string `json:"mountPath"`
 }
 
 // KanikoBuildStatus defines the observed state of KanikoBuild.

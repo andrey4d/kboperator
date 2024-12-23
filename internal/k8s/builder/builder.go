@@ -32,13 +32,20 @@ func (b *Builder) PodVolumes() []corev1.Volume {
 				LocalObjectReference: corev1.LocalObjectReference{Name: b.BuilderName()},
 			},
 		}},
+		{Name: "workspace", VolumeSource: corev1.VolumeSource{
+			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				ClaimName: b.BuilderName(),
+				ReadOnly:  false,
+			},
+		}},
 	}
 }
 
 func (b *Builder) VolumesMount() []corev1.VolumeMount {
 	return []corev1.VolumeMount{
-		{Name: "dockerfile", MountPath: b.GetContext() + "/Dockerfile", SubPath: "Dockerfile"},
+		{Name: "dockerfile", MountPath: "/kaniko/Dockerfile", SubPath: "Dockerfile"},
 		{Name: "dockerfile", MountPath: "/kaniko/.docker/config.json", SubPath: "config.json"},
+		{Name: "workspace", MountPath: b.GetContext(), ReadOnly: false},
 	}
 }
 
@@ -49,7 +56,7 @@ func (b *Builder) Command() []string {
 	return []string{
 		"/kaniko/executor",
 		"--context=" + b.GetContext(),
-		"--dockerfile=" + b.GetContext() + "/Dockerfile",
+		"--dockerfile=/kaniko/Dockerfile",
 		"--destination=" + b.Crd.Spec.Destination,
 	}
 }
@@ -80,4 +87,11 @@ func (b *Builder) BuilderName() string {
 		return b.Crd.Spec.Name
 	}
 	return "builder"
+}
+
+func (b *Builder) VolumeSize() string {
+	if b.Crd.Spec.Persistence.VolumeSize != "" {
+		return b.Crd.Spec.Persistence.VolumeSize
+	}
+	return "1Gi"
 }
