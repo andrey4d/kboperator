@@ -23,3 +23,7 @@ spec:
     FROM library/alpine:latest
     RUN apk add --no-cache curl
     CMD ["curl", "http://www.google.com"]
+  persistence:
+    enabled: true
+    storageClassName: local-path
+    volumeSize: 1Gi

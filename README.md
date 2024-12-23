@@ -22,6 +22,10 @@ spec:
     - --cache=true
     - --cache-repo=registry.home.local/kaniko-cache
     - --skip-tls-verify
+  persistence:
+    enabled: true
+    storageClass: local-path
+    volumeSize: 1Gi    
   docker_config:
     registry: registry.home.local
     auth: dXNlcjpwYXNzd29yZA==

@@ -103,9 +103,11 @@ func (r *KanikoBuildReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return result, err
 	}
 
-	result, err = r.PersistenceVolume(ctx, req, kaniko)
-	if err != nil {
-		return result, err
+	if kaniko.Spec.Persistence.Enabled {
+		result, err = r.PersistenceVolume(ctx, req, kaniko)
+		if err != nil {
+			return result, err
+		}
 	}
 	// Jobs
 	result, err = r.Job(ctx, req, kaniko)

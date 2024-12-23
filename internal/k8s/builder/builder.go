@@ -25,28 +25,38 @@ func (b *Builder) LabelsForBuilder() map[string]string {
 }
 
 func (b *Builder) PodVolumes() []corev1.Volume {
-	return []corev1.Volume{
-		{Name: "dockerfile", VolumeSource: corev1.VolumeSource{
+
+	volumes := []corev1.Volume{{
+		Name: "dockerfile",
+		VolumeSource: corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
 				DefaultMode:          &[]int32{0644}[0],
 				LocalObjectReference: corev1.LocalObjectReference{Name: b.BuilderName()},
 			},
 		}},
-		{Name: "workspace", VolumeSource: corev1.VolumeSource{
+	}
+
+	if b.Crd.Spec.Persistence.Enabled {
+		volumes = append(volumes, corev1.Volume{Name: "workspace", VolumeSource: corev1.VolumeSource{
 			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 				ClaimName: b.BuilderName(),
 				ReadOnly:  false,
 			},
-		}},
+		}})
 	}
+	return volumes
 }
 
 func (b *Builder) VolumesMount() []corev1.VolumeMount {
-	return []corev1.VolumeMount{
+	volumesMount := []corev1.VolumeMount{
 		{Name: "dockerfile", MountPath: "/kaniko/Dockerfile", SubPath: "Dockerfile"},
 		{Name: "dockerfile", MountPath: "/kaniko/.docker/config.json", SubPath: "config.json"},
-		{Name: "workspace", MountPath: b.GetContext(), ReadOnly: false},
 	}
+	if b.Crd.Spec.Persistence.Enabled {
+		volumesMount = append(volumesMount,
+			corev1.VolumeMount{Name: "workspace", MountPath: b.GetContext(), ReadOnly: false})
+	}
+	return volumesMount
 }
 
 func (b *Builder) Command() []string {
