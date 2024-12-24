@@ -134,8 +134,8 @@ func (r *KanikoBuildReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *KanikoBuildReconciler) ConfigMap(ctx context.Context, req ctrl.Request, kaniko *kbov1alpha1.KanikoBuild) (ctrl.Result, error) {
 	log := log.FromContext(ctx).WithName("ConfigMap")
-	err := r.Get(ctx, r.objectKey(kaniko), &corev1.ConfigMap{})
-
+	found := &corev1.ConfigMap{}
+	err := r.Get(ctx, r.objectKey(kaniko), found)
 	if err != nil && apierrors.IsNotFound(err) {
 		cm, err := configmaps.NewConfigMap(kaniko, r.Scheme).BuilderConfigMap()
 		if err := r.SetErrorStatus(context.WithValue(ctx, objectLogKey, "ConfigMap"), kaniko, err); err != nil {
@@ -156,7 +156,8 @@ func (r *KanikoBuildReconciler) ConfigMap(ctx context.Context, req ctrl.Request,
 
 func (r *KanikoBuildReconciler) Job(ctx context.Context, req ctrl.Request, kaniko *kbov1alpha1.KanikoBuild) (ctrl.Result, error) {
 	log := log.FromContext(ctx).WithName("Job")
-	err := r.Get(ctx, r.objectKey(kaniko), &kbatch.Job{})
+	found := &kbatch.Job{}
+	err := r.Get(ctx, r.objectKey(kaniko), found)
 	if err != nil && apierrors.IsNotFound(err) {
 		job, err := jobs.NewJob(kaniko, r.Scheme).BuilderJob()
 		if err := r.SetErrorStatus(context.WithValue(ctx, objectLogKey, "Job"), kaniko, err); err != nil {
@@ -179,6 +180,7 @@ func (r *KanikoBuildReconciler) Job(ctx context.Context, req ctrl.Request, kanik
 func (r *KanikoBuildReconciler) PersistenceVolume(ctx context.Context, req ctrl.Request, kaniko *kbov1alpha1.KanikoBuild) (ctrl.Result, error) {
 	log := log.FromContext(ctx).WithName("PersistenceVolume")
 	found := &corev1.PersistentVolumeClaim{}
+
 	err := r.Get(ctx, r.objectKey(kaniko), found)
 	if err != nil && apierrors.IsNotFound(err) {
 		pvc, err := persistence.NewPersistence(kaniko, r.Scheme).BuilderPvc()
