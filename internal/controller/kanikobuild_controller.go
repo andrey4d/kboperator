@@ -126,9 +126,9 @@ func (r *KanikoBuildReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&kbov1alpha1.KanikoBuild{}).
 		Named("kanikobuild").
-		Owns(&kbatch.Job{}).
-		Owns(&corev1.ConfigMap{}).
-		Owns(&corev1.PersistentVolumeClaim{}).
+		// Owns(&kbatch.Job{}).
+		// Owns(&corev1.ConfigMap{}).
+		// Owns(&corev1.PersistentVolumeClaim{}).
 		Complete(r)
 }
 
