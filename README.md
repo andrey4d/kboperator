@@ -29,7 +29,7 @@ spec:
     auth: dXNlcjpwYXNzd29yZA==
 ```
 ```shell
-make deploy IMG=registry.home.local/kboperator:v0.0.4
+make deploy IMG=registry.home.local/kboperator:v0.0.1
 ```
 ### Make installer
 ```shell

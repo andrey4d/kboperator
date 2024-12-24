@@ -1844,7 +1844,6 @@ spec:
                   storageClass:
                     type: string
                   volumeSize:
-                    description: 'Defaults: 1Gi'
                     type: string
                 type: object
             type: object
@@ -1907,11 +1906,6 @@ spec:
                   - type
                   type: object
                 type: array
-              name:
-                description: |-
-                  INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-                  Important: Run "make" to regenerate code after modifying this file
-                type: string
             type: object
         type: object
     served: true

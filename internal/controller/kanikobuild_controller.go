@@ -176,26 +176,6 @@ func (r *KanikoBuildReconciler) Job(ctx context.Context, req ctrl.Request, kanik
 	return ctrl.Result{}, nil
 }
 
-func (r *KanikoBuildReconciler) SetErrorStatus(ctx context.Context, kaniko *kbov1alpha1.KanikoBuild, err error) error {
-	log := log.FromContext(ctx).WithValues(objectLogKey, ctx.Value("object"))
-	if err != nil {
-		log.Error(err, "Failed to define new resource")
-		// The following implementation will update the status
-		meta.SetStatusCondition(&kaniko.Status.Conditions, metav1.Condition{
-			Type:   typeAvailable,
-			Status: metav1.ConditionFalse, Reason: "Reconciling",
-			Message: fmt.Sprintf("Failed to create the custom resource (%s): (%s)", kaniko.Name, err),
-		})
-
-		if err := r.Status().Update(ctx, kaniko); err != nil {
-			log.Error(err, "Failed to update Builder status")
-			return err
-		}
-		return err
-	}
-	return err
-}
-
 func (r *KanikoBuildReconciler) PersistenceVolume(ctx context.Context, req ctrl.Request, kaniko *kbov1alpha1.KanikoBuild) (ctrl.Result, error) {
 	log := log.FromContext(ctx).WithName("PersistenceVolume")
 	found := &corev1.PersistentVolumeClaim{}
@@ -216,6 +196,26 @@ func (r *KanikoBuildReconciler) PersistenceVolume(ctx context.Context, req ctrl.
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *KanikoBuildReconciler) SetErrorStatus(ctx context.Context, kaniko *kbov1alpha1.KanikoBuild, err error) error {
+	log := log.FromContext(ctx).WithValues("object", ctx.Value("object"))
+	if err != nil {
+		log.Error(err, "Failed to define new resource")
+		// The following implementation will update the status
+		meta.SetStatusCondition(&kaniko.Status.Conditions, metav1.Condition{
+			Type:   typeAvailable,
+			Status: metav1.ConditionFalse, Reason: "Reconciling",
+			Message: fmt.Sprintf("Failed to create the custom resource (%s): (%s)", kaniko.Name, err),
+		})
+
+		if err := r.Status().Update(ctx, kaniko); err != nil {
+			log.Error(err, "Failed to update Builder status")
+			return err
+		}
+		return err
+	}
+	return err
 }
 
 func (r *KanikoBuildReconciler) objectKey(k *kbov1alpha1.KanikoBuild) client.ObjectKey {
