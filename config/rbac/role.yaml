@@ -7,7 +7,9 @@ rules:
 - apiGroups:
   - '*'
   resources:
-  - '*'
+  - configmaps
+  - jobs
+  - persistentvolumeclaims
   verbs:
   - create
   - delete
@@ -19,9 +21,7 @@ rules:
 - apiGroups:
   - kbo.k8s.dav.io
   resources:
-  - kanikobuilds/configmaps
-  - kanikobuilds/jobs
-  - kanikobuilds/persistentvolumeclaims
+  - '*'
   verbs:
   - create
   - delete

@@ -55,9 +55,12 @@ type KanikoBuildReconciler struct {
 	Recorder record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=kbo.k8s.dav.io,resources=,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kbo.k8s.dav.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kbo.k8s.dav.io,resources=kanikobuilds/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=kbo.k8s.dav.io,resources=kanikobuilds/finalizers,verbs=update
+// +kubebuilder:rbac:groups=*,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=*,resources=jobs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=*,resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -123,8 +126,9 @@ func (r *KanikoBuildReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&kbov1alpha1.KanikoBuild{}).
 		Named("kanikobuild").
-		// Owns(&kbatch.Job{}).
-		// Owns(&corev1.ConfigMap{}).
+		Owns(&kbatch.Job{}).
+		Owns(&corev1.ConfigMap{}).
+		Owns(&corev1.PersistentVolumeClaim{}).
 		Complete(r)
 }
 
