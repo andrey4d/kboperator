@@ -56,10 +56,8 @@ func (j *Job) BuilderJob() (*batchv1.Job, error) {
 	}
 
 	job := &batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      j.builder.BuilderName(),
-			Namespace: j.Namespace,
-		},
+		ObjectMeta: j.builder.Metadata(),
+
 		Spec: spec,
 	}
 

@@ -40,8 +40,8 @@ import (
 )
 
 const (
-	typeAvailableProject = "Available"
-	typeDegradedProject  = "Degraded"
+	typeAvailable = "Available"
+	typeDegraded  = "Degraded"
 )
 
 type contextKey string
@@ -78,17 +78,17 @@ func (r *KanikoBuildReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	err := r.Get(ctx, types.NamespacedName{Name: req.Name, Namespace: req.Namespace}, kaniko)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			log.Info("Application resource not found. Ignoring since object must be deleted.")
+			log.Info("Resource not found. Ignoring since object must be deleted.")
 			return ctrl.Result{}, nil
 		}
-		log.Info("Failed to get Application resource. Re-running reconcile.")
+		log.Info("Failed to get resource. Re-running reconcile.")
 		return ctrl.Result{}, err
 	}
 
-	log.Info("Application resource found", "name", kaniko.Name)
+	log.Info("Resource found", "name", kaniko.Name)
 
 	if len(kaniko.Status.Conditions) == 0 {
-		meta.SetStatusCondition(&kaniko.Status.Conditions, metav1.Condition{Type: typeAvailableProject, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "Starting reconciliation"})
+		meta.SetStatusCondition(&kaniko.Status.Conditions, metav1.Condition{Type: typeAvailable, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "Starting reconciliation"})
 		if err = r.Status().Update(ctx, kaniko); err != nil {
 			log.Error(err, "Failed to update project status")
 			return ctrl.Result{}, err
@@ -133,24 +133,22 @@ func (r *KanikoBuildReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *KanikoBuildReconciler) ConfigMap(ctx context.Context, req ctrl.Request, kaniko *kbov1alpha1.KanikoBuild) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
-	found := &corev1.ConfigMap{}
-	err := r.Get(ctx, r.objectKey(kaniko), found)
+	log := log.FromContext(ctx).WithName("ConfigMap")
+	err := r.Get(ctx, r.objectKey(kaniko), &corev1.ConfigMap{})
 
 	if err != nil && apierrors.IsNotFound(err) {
 		cm, err := configmaps.NewConfigMap(kaniko, r.Scheme).BuilderConfigMap()
 		if err := r.SetErrorStatus(context.WithValue(ctx, objectLogKey, "ConfigMap"), kaniko, err); err != nil {
 			return ctrl.Result{}, err
 		}
-		log.Info("Creating a new ConfigMap", "ConfigMap.Namespace", cm.Namespace, "ConfigMap.Name", cm.Name)
+		log.Info("Creating a new ConfigMap", "Namespace", cm.Namespace, "Name", cm.Name)
 
 		if err = r.Create(ctx, cm); err != nil {
-			log.Error(err, "Failed to create new ConfigMap", "ConfigMap.Namespace", cm.Namespace, "ConfigMap.Name", cm.Name)
+			log.Error(err, "Failed to create new ConfigMap", "Namespace", cm.Namespace, "Name", cm.Name)
 			return ctrl.Result{}, err
 		}
 	} else if err != nil {
 		log.Error(err, "Failed to get ConfigMap")
-		// Let's return the error for the reconciliation be re-trigged again
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
@@ -158,8 +156,7 @@ func (r *KanikoBuildReconciler) ConfigMap(ctx context.Context, req ctrl.Request,
 
 func (r *KanikoBuildReconciler) Job(ctx context.Context, req ctrl.Request, kaniko *kbov1alpha1.KanikoBuild) (ctrl.Result, error) {
 	log := log.FromContext(ctx).WithName("Job")
-	found := &kbatch.Job{}
-	err := r.Get(ctx, r.objectKey(kaniko), found)
+	err := r.Get(ctx, r.objectKey(kaniko), &kbatch.Job{})
 	if err != nil && apierrors.IsNotFound(err) {
 		job, err := jobs.NewJob(kaniko, r.Scheme).BuilderJob()
 		if err := r.SetErrorStatus(context.WithValue(ctx, objectLogKey, "Job"), kaniko, err); err != nil {
@@ -174,25 +171,24 @@ func (r *KanikoBuildReconciler) Job(ctx context.Context, req ctrl.Request, kanik
 
 	} else if err != nil {
 		log.Error(err, "Failed to get Job")
-		// Let's return the error for the reconciliation be re-trigged again
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
 }
 
 func (r *KanikoBuildReconciler) SetErrorStatus(ctx context.Context, kaniko *kbov1alpha1.KanikoBuild, err error) error {
-	log := log.FromContext(ctx).WithValues("object", ctx.Value("object"))
+	log := log.FromContext(ctx).WithValues(objectLogKey, ctx.Value("object"))
 	if err != nil {
 		log.Error(err, "Failed to define new resource")
 		// The following implementation will update the status
 		meta.SetStatusCondition(&kaniko.Status.Conditions, metav1.Condition{
-			Type:   typeAvailableProject,
+			Type:   typeAvailable,
 			Status: metav1.ConditionFalse, Reason: "Reconciling",
 			Message: fmt.Sprintf("Failed to create the custom resource (%s): (%s)", kaniko.Name, err),
 		})
 
 		if err := r.Status().Update(ctx, kaniko); err != nil {
-			log.Error(err, "Failed to update KanikoBuilder status")
+			log.Error(err, "Failed to update Builder status")
 			return err
 		}
 		return err
@@ -209,7 +205,7 @@ func (r *KanikoBuildReconciler) PersistenceVolume(ctx context.Context, req ctrl.
 		if err := r.SetErrorStatus(context.WithValue(ctx, objectLogKey, "PVC"), kaniko, err); err != nil {
 			return ctrl.Result{}, err
 		}
-		log.Info("Creating a new ConfigMap", "Namespace", pvc.Namespace, "Name", pvc.Name)
+		log.Info("Creating a new PVC", "Namespace", pvc.Namespace, "Name", pvc.Name)
 
 		if err = r.Create(ctx, pvc); err != nil {
 			log.Error(err, "Failed to create new PVC", "Namespace", pvc.Namespace, "Name", pvc.Name)

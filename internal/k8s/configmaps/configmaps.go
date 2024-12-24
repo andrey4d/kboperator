@@ -7,9 +7,8 @@ package configmaps
 import (
 	kbov1alpha1 "github.com/andrey4d/kboperator/api/v1alpha1"
 	"github.com/andrey4d/kboperator/internal/k8s/builder"
-
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -29,10 +28,7 @@ func NewConfigMap(k *kbov1alpha1.KanikoBuild, scheme *runtime.Scheme) *ConfigMap
 }
 
 func (c *ConfigMap) BuilderConfigMap() (*corev1.ConfigMap, error) {
-
-	metadata := metav1.ObjectMeta{Name: c.builder.BuilderName(), Namespace: c.Namespace}
-
-	cm := &corev1.ConfigMap{ObjectMeta: metadata,
+	cm := &corev1.ConfigMap{ObjectMeta: c.builder.Metadata(),
 		Data: map[string]string{
 			"Dockerfile":  c.builder.Crd.Spec.Dockerfile,
 			"config.json": dockerConfig(c.builder.Crd.Spec.DockerConfig.Registry, c.builder.Crd.Spec.DockerConfig.Auth),

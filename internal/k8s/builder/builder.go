@@ -7,6 +7,14 @@ package builder
 import (
 	kbov1alpha1 "github.com/andrey4d/kboperator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	builderImage      = "gcr.io/kaniko-project/executor:latest"
+	builderName       = "builder"
+	builderWorkspace  = "/workspace"
+	builderDockerfile = "/kaniko/Dockerfile"
 )
 
 type Builder struct {
@@ -53,7 +61,7 @@ func (b *Builder) VolumesMount() []corev1.VolumeMount {
 	}
 	if b.Crd.Spec.Dockerfile != "" {
 		volumesMount = append(volumesMount,
-			corev1.VolumeMount{Name: "dockerfile", MountPath: "/kaniko/Dockerfile", SubPath: "Dockerfile"})
+			corev1.VolumeMount{Name: "dockerfile", MountPath: builderDockerfile, SubPath: "Dockerfile"})
 	}
 	if b.Crd.Spec.Persistence.Enabled {
 		volumesMount = append(volumesMount,
@@ -69,7 +77,7 @@ func (b *Builder) Command() []string {
 	return []string{
 		"/kaniko/executor",
 		"--context=" + b.GetContext(),
-		"--dockerfile=/kaniko/Dockerfile",
+		"--dockerfile=" + builderDockerfile,
 		"--destination=" + b.Crd.Spec.Destination,
 	}
 }
@@ -85,26 +93,33 @@ func (b *Builder) GetContext() string {
 	if b.Crd.Spec.Context != "" {
 		return b.Crd.Spec.Context
 	}
-	return "/workspace"
+	return builderWorkspace
 }
 
 func (b *Builder) BuilderImage(k *kbov1alpha1.KanikoBuild) string {
 	if b.Crd.Spec.Image != "" {
 		return b.Crd.Spec.Image
 	}
-	return "gcr.io/kaniko-project/executor:latest"
+	return builderImage
 }
 
 func (b *Builder) BuilderName() string {
 	if b.Crd.Spec.Name != "" {
 		return b.Crd.Spec.Name
 	}
-	return "builder"
+	return builderName
 }
 
 func (b *Builder) VolumeSize() string {
 	if b.Crd.Spec.Persistence.VolumeSize != "" {
 		return b.Crd.Spec.Persistence.VolumeSize
 	}
-	return "1Gi"
+	return "10Gi"
+}
+
+func (b *Builder) Metadata() metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		Name:      b.BuilderName(),
+		Namespace: b.Crd.Namespace,
+	}
 }

@@ -44,9 +44,8 @@ type DockerConfig struct {
 }
 
 type PersistenceVolume struct {
-	Enabled bool `json:"enabled,omitempty"`
-	// Defaults: 1Gi
-	VolumeSize   string   `json:"volumeSize,omitempty"`
+	Enabled      bool     `json:"enabled,omitempty"`
+	VolumeSize   string   `json:"volumeSize,omitempty" Defaults:"10Gi"`
 	StorageClass string   `json:"storageClass,omitempty"`
 	ExtraVolumes []Volume `json:"extraVolumes,omitempty"`
 }
@@ -59,9 +58,6 @@ type Volume struct {
 
 // KanikoBuildStatus defines the observed state of KanikoBuild.
 type KanikoBuildStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	Name       string             `json:"name,omitempty"`
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
