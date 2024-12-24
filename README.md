@@ -47,8 +47,6 @@ spec:
   image: gcr.io/kaniko-project/executor:latest
   context: /workspace
   destination: registry.home.local/kboperator-curl:v0.0.1
-#   command:
-#     - /bin/sh
   args: 
     - --cache=true
     - --cache-repo=registry.home.local/kaniko-cache
