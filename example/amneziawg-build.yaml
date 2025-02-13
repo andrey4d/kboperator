@@ -1,0 +1,61 @@
+---
+apiVersion: kbo.k8s.dav.io/v1alpha1
+kind: KanikoBuild
+metadata:
+  labels:
+    app.kubernetes.io/name: builder-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: amneziawg-kbopertor
+  namespace: kaniko-builder
+spec:
+  name: amneziawg-builder
+  image: gcr.io/kaniko-project/executor:latest
+  context: /workspace
+  destination: registry-docker-registry.registry:5000/amneziawg:v0.0.20230223
+  args:
+    - --build-arg=URL=https://github.com/amnezia-vpn/amneziawg-go.git
+    - --cache-repo=registry-docker-registry.registry:5000/kaniko-cache
+    - --skip-tls-verify
+
+  docker_config:
+    registry: registry-docker-registry.registry:5000
+    auth: dXNlcjpwYXNzd29yZA==
+
+  dockerfile: |-
+    FROM golang:1.22.3 AS awg
+    ARG URL=https://github.com/amnezia-vpn/amneziawg-go.git
+    
+    RUN apt update \
+        && apt install -y git
+    
+    RUN cd / && git clone ${URL}
+    
+    WORKDIR /amneziawg-go
+    
+    RUN go mod download && \
+        go mod verify && \
+        go build -ldflags '-linkmode external -extldflags "-fno-PIC -static"' -v -o /usr/bin
+    
+    RUN <<EOF cat > entrypoint.sh
+    #!/bin/sh
+    chmod 600 /dev/net/tun
+    awg-quick up /etc/amnezia/awg0.conf
+    iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+    while true; do sleep 1; done
+    EOF
+    RUN chmod a+x entrypoint.sh
+    
+    
+    FROM alpine:3.19
+    ARG AWGTOOLS_RELEASE="1.0.20240213"
+    RUN apk --no-cache add iproute2 iptables bash && \
+        cd /usr/bin/ && \
+        wget https://github.com/amnezia-vpn/amneziawg-tools/releases/download/v${AWGTOOLS_RELEASE}/alpine-3.19-amneziawg-tools.zip && \
+        unzip -j alpine-3.19-amneziawg-tools.zip && \
+        chmod +x /usr/bin/awg /usr/bin/awg-quick && \
+        ln -s /usr/bin/awg /usr/bin/wg && \
+        ln -s /usr/bin/awg-quick /usr/bin/wg-quick
+    COPY --from=awg /usr/bin/amneziawg-go /usr/bin/amneziawg-go
+    COPY --from=awg /amneziawg-go/entrypoint.sh /
+    
+    CMD ["/entrypoint.sh"]

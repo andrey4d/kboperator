@@ -1,0 +1,55 @@
+---
+apiVersion: kbo.k8s.dav.io/v1alpha1
+kind: KanikoBuild
+metadata:
+  labels:
+    app.kubernetes.io/name: builder-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: xray-kbopertor
+  namespace: kaniko-builder
+spec:
+  name: xray-builder
+  image: gcr.io/kaniko-project/executor:latest
+  context: /workspace
+  destination: registry-docker-registry.registry:5000/xray-core:v24.12.31
+  args:
+    - --build-arg=VERSION=v24.12.31
+    - --insecure-registry=registry-docker-registry.registry:5000
+    
+  docker_config:
+    registry: registry-docker-registry.registry:5000
+    auth: dXNlcjpwYXNzd29yZA==
+  
+  dockerfile: |-
+    FROM golang:1.22-alpine3.20 AS builder
+
+    ARG VERSION
+    ARG XRAYURL="https://github.com/XTLS/Xray-core.git"
+
+
+    RUN mkdir -p /opt/xray
+    WORKDIR /opt/xray
+
+    RUN apk add git make
+    RUN git clone ${XRAYURL}
+    WORKDIR /opt/xray/Xray-core
+    RUN git checkout ${VERSION}
+    RUN make
+
+    FROM alpine:3.20
+
+    LABEL maintainer="andrey4d.dev@gmial.com"
+
+    RUN apk add --update --no-cache iptables iproute2 tzdata curl bind-tools jq
+
+    COPY --from=builder /opt/xray/Xray-core/xray  /usr/bin/
+
+    RUN set -ex \
+        && mkdir -p /usr/share/xray \
+        && wget -O /usr/share/xray/geosite.dat https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat \
+        && wget -O /usr/share/xray/geoip.dat https://github.com/v2fly/geoip/releases/latest/download/geoip.dat
+
+
+    ENV TZ=Asia/Shanghai
+
+    CMD [ "/usr/bin/xray", "-config", "/etc/xray/config.json" ]

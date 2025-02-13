@@ -1,0 +1,14 @@
+---
+apiVersion: kbo.k8s.dav.io/v1alpha1
+kind: KanikoBuild
+metadata:
+  name: kanikobuild-sample
+spec:
+  destination: registry-docker-registry.registry:5000/kboperator-curl:v0.0.1
+  docker_config:
+    registry: registry-docker-registry.registry:5000
+    auth: dXNlcjpwYXNzd29yZA==
+  dockerfile: |-
+    FROM library/alpine:latest
+    RUN apk add --no-cache curl
+    CMD ["curl", "http://www.google.com"]
